@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Markdown ビューア v__APP_VERSION__</title>
+<title>Handy Markdown Viewer v__APP_VERSION__</title>
 <style>
 /* hidden 属性の要素は、必ず隠す。display を指定した規則（.frow { display: flex } など）が、hidden を打ち消して表示してしまうため
    （Ctrl+F の検索バーに、置換の行が出ていた）。要素ごとの [hidden] の規則は、これに任せる */
@@ -278,7 +278,7 @@ function toggleSide() {
 function showEmpty() {
   if (current) return;
   const e = $('empty');
-  if (!folder) e.innerHTML = '<p><b>Markdown ビューア</b> <span style="color:var(--muted)">v__APP_VERSION__</span></p><p>上の「フォルダーを開く」で、読みたいファイルのあるフォルダーを選んでください。<br>一覧からファイルを選ぶと、ここに表示されます。</p><p>1つだけ読むときは「ファイルを開く」です。</p>';
+  if (!folder) e.innerHTML = '<p><b>Handy Markdown Viewer</b> <span style="color:var(--muted)">v__APP_VERSION__</span></p><p>上の「フォルダーを開く」で、読みたいファイルのあるフォルダーを選んでください。<br>一覧からファイルを選ぶと、ここに表示されます。</p><p>1つだけ読むときは「ファイルを開く」です。</p>';
   else if (files.length) e.innerHTML = '<p>← 左の一覧から、読みたいファイルを選んでください。</p>';
   else e.innerHTML = '<p>このフォルダーには Markdown ファイルがありません。</p><p>別のフォルダーを選ぶには「フォルダーを開く」を押してください。</p>';
 }

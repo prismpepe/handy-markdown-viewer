@@ -1,4 +1,4 @@
-"""Markdown ビューア（Windows）。
+"""Handy Markdown Viewer（Windows）。
 
 使い方:
     MarkdownViewer.exe [ファイル.md | フォルダー]
@@ -32,8 +32,8 @@ import uiprefs
 from sanitize import sanitize
 
 MD_EXTENSIONS = (".md", ".markdown", ".mdown", ".mkd")
-APP_VERSION = "1.10.0"          # 画面上部（ウィンドウのタイトル）などに出すバージョン。ここだけ書き換える
-APP_TITLE = f"Markdown ビューア v{APP_VERSION}"
+APP_VERSION = "1.10.1"          # 画面上部（ウィンドウのタイトル）などに出すバージョン。ここだけ書き換える
+APP_TITLE = f"Handy Markdown Viewer v{APP_VERSION}"
 PROG_ID = "MarkdownViewer.File"
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
 MAX_FILES = 5000
@@ -501,12 +501,12 @@ class Api:
 
 
 # --- エクスプローラー連携 ----------------------------------------------------
-def message(text, title="Markdown ビューア"):
+def message(text, title="Handy Markdown Viewer"):
     ctypes.windll.user32.MessageBoxW(0, text, title, 0x40)
 
 
 VERB = "MarkdownViewer"                    # フォルダーの右クリックのメニューのキー名（ほかのアプリと別にする）
-MENU_TEXT = "Markdown ビューアで開く"
+MENU_TEXT = "Handy Markdown Viewer で開く"
 
 
 def register_association():
@@ -517,10 +517,10 @@ def register_association():
     shellreg.notify_shell()
     message("登録しました。\n\n"
             "■ Markdown ファイル\n"
-            "右クリック →「プログラムから開く」→「別のプログラムを選択」で「Markdown ビューアで開く」を選び、"
+            "右クリック →「プログラムから開く」→「別のプログラムを選択」で「Handy Markdown Viewer で開く」を選び、"
             "「常に使う」を押すと、ダブルクリックで開けます。\n\n"
             "■ フォルダー\n"
-            "フォルダーを右クリックすると、「Markdown ビューアで開く」が出ます。フォルダーを開いて、"
+            "フォルダーを右クリックすると、「Handy Markdown Viewer で開く」が出ます。フォルダーを開いて、"
             "何もない場所を右クリックしても出ます。\n"
             "Windows 11 では、右クリックしてすぐ出るメニューではなく、「その他のオプションを表示」を押した先に出ます"
             "（Shift キーを押しながら右クリックしても出ます）。")

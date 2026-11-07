@@ -49,7 +49,7 @@ def register(exe, prog_id, text, verb, classes=REAL_CLASSES):
     """exe を、ファイルの「プログラムから開く」と、フォルダーの右クリックに登録する。
 
     prog_id: ファイルの種類の名前（例: MarkdownViewer.File）
-    text:    メニューに出す文言（例: Markdown ビューアで開く）
+    text:    メニューに出す文言（例: Handy Markdown Viewer で開く）
     verb:    フォルダーのメニューのキー名。アプリごとに変える（同じだと、片方がもう片方を上書きする）
     """
     import winreg

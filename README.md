@@ -1,8 +1,8 @@
-# Markdown ビューア
+# Handy Markdown Viewer
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/MarkdownViewer-dark.png">
-  <img alt="Markdown ビューアの画面" src="docs/images/MarkdownViewer-light.png">
+  <img alt="Handy Markdown Viewer の画面" src="docs/images/MarkdownViewer-light.png">
 </picture>
 
 Windows 11 向けの、Markdown 閲覧専用アプリです。フォルダーの中の Markdown を一覧から選んで読み、そのまま印刷・PDF 保存できます。文書は書き換えません（書くときは、姉妹アプリの Markdown エディタを使います）。
