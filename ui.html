@@ -813,7 +813,11 @@ function initBodySearch() {
   const sync = () => {
     $('bodyOpts').hidden = !bodyOn();
     $('filter').placeholder = bodyOn() ? '🔍 本文を探す語' : '🔍 ファイル名で絞り込み';
-    if (bodyOn()) scheduleBodySearch(0); else { bsearch.seq++; renderList(); }
+    if (bodyOn()) scheduleBodySearch(0);
+    else {
+      bsearch.seq++; renderList();
+      if (bsearch.hitOpened) { bsearch.hitOpened = false; finder.close(); }       // 結果の行から開いて付いた、検索バーとハイライトを消す
+    }
   };
   $('bodySearch').onchange = sync;
   $('bsCase').onchange = () => scheduleBodySearch(0);
@@ -828,7 +832,7 @@ async function openHit(rel, hit) {
   if (!hit || !current) return;
   const o = bsearch.opts || bodyOpts();
   $('sq').value = o.q; $('sCase').checked = !!o.cs; $('sRegex').checked = !!o.re;
-  finder.open();
+  finder.open(); bsearch.hitOpened = true;
   const n = finder.count();
   if (!n) { const t = [...document.querySelectorAll('#content [data-line]')].filter(e => parseInt(e.dataset.line, 10) <= hit.line).pop(); if (t) t.scrollIntoView({ block: 'center' }); return; }
   if (n > 400) return;                                   // 多すぎるときは、最初の一致のまま

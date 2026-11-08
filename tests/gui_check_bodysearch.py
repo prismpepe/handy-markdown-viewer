@@ -114,7 +114,10 @@ def drive():
     check("ファイル名を押すと、そのファイルを開く", wait("(document.querySelector('#content h1') || {}).textContent === '設計'"), True)
 
     # --- 切ると、ファイル一覧に戻る
+    check("切る前は、本文にハイライトが付いている", js("document.querySelectorAll('#content mark.find-hit').length > 0"), True)
     js("document.getElementById('bodySearch').click()")
+    check("「本文を探す」を切ると、検索バーが閉じ、ハイライトも消える",
+          wait("document.getElementById('sBar').hidden && document.querySelectorAll('#content mark.find-hit').length === 0"), True)
     set_query('')
     check("「本文を探す」を切ると、ファイルの一覧に戻る", wait("document.querySelectorAll('#list .item').length === 3 && document.getElementById('bodyOpts').hidden"), True)
     check("件数の表示も、ファイルの件数に戻る", count_text(), '3 / 3 件')
