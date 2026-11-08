@@ -89,6 +89,8 @@ def clean_prefs(patch):
             out["zoom"] = zoom
     if "side_hidden" in patch:
         out["side_hidden"] = bool(patch["side_hidden"])
+    if isinstance(patch.get("auto_reload"), bool):
+        out["auto_reload"] = patch["auto_reload"]
     return out
 
 

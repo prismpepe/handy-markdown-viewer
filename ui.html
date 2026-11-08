@@ -72,13 +72,22 @@ button:hover { border-color: var(--accent); }
 .item { padding: 5px 10px; cursor: pointer; border-left: 3px solid transparent; }
 .item:hover { background: var(--sel); }
 .item.sel { background: var(--sel); border-left-color: var(--accent); }
-.dirhead { padding: 6px 10px 2px; margin-top: 4px; font-size: 12px; font-weight: 600;
-  color: var(--muted); word-break: break-all; }
+/* 一覧の階層表示（サブフォルダをアコーディオンで開閉） */
+.dirrow { padding: 4px 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--fg); display: flex; align-items: baseline; gap: 4px; user-select: none; }
+.dirrow:hover { background: var(--sel); }
+.dirrow .chev { display: inline-block; width: 1em; color: var(--muted); flex: none; }
+.dirrow .dname { word-break: break-all; }
+.dirrow .dcnt { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: auto; padding-left: 6px; flex: none; }
+#treeBtns { display: flex; gap: 6px; padding: 0 10px 4px; }
+#treeBtns[hidden] { display: none; }
+#treeBtns button { font-size: 11px; padding: 0 6px; }
 .item .name { display: block; font-weight: 600; word-break: break-all; }
 .item .dir { display: block; color: var(--muted); font-size: 12px; word-break: break-all; }
 #main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 #top { padding: 6px 12px; border-bottom: 1px solid var(--border);
   display: flex; gap: 8px; align-items: center; }
+#navbtns { display: flex; gap: 4px; flex: none; }
+#navbtns button { padding: 0 9px; font-size: 12px; line-height: 1.7; }
 #title { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #scroll { flex: 1; overflow: auto; }
 #content { padding: 24px 32px 64px; transform-origin: top left;
@@ -212,6 +221,7 @@ button:hover { border-color: var(--accent); }
   <span class="group">
     <button id="btnSide" title="Ctrl+B">☰ 一覧を隠す</button>
     <button id="btnReload" title="F5">↻ 更新</button>
+    <button id="btnAuto" title="開いているファイルが他のアプリで保存されたら、表示を自動で更新します">⟳ 自動更新</button>
     <button id="btnFind" title="Ctrl+F">🔍 検索</button>
   </span>
   <span class="group">
@@ -234,10 +244,11 @@ button:hover { border-color: var(--accent); }
   <div id="folder">未選択（上の「フォルダーを開く」で選びます）</div>
   <input id="filter" type="search" placeholder="🔍 ファイル名で絞り込み">
   <div id="count"></div>
+  <div id="treeBtns" hidden><button id="treeOpen" title="すべてのフォルダを開きます">すべて開く</button><button id="treeClose" title="すべてのフォルダを閉じます">すべて閉じる</button></div>
   <div id="list"></div>
 </aside>
 <div id="main">
-  <div id="top"><span id="title"></span></div>
+  <div id="top"><span id="navbtns"><button id="btnBack" title="戻る (Alt+←)" disabled>◀</button><button id="btnFwd" title="進む (Alt+→)" disabled>▶</button></span><span id="title"></span></div>
   <div id="sBar" hidden>
     <input id="sq" type="text" placeholder="検索する文字列" spellcheck="false">
     <button id="sPrev" title="前の一致 (Shift+Enter / Shift+F3)">▲ 前へ</button>
@@ -283,8 +294,72 @@ function showEmpty() {
   else e.innerHTML = '<p>このフォルダーには Markdown ファイルがありません。</p><p>別のフォルダーを選ぶには「フォルダーを開く」を押してください。</p>';
 }
 
-function showMsg(t) { const m = $('msg'); m.textContent = t || ''; m.hidden = !t; }
+function showMsg(t) { const m = $('msg'); m.textContent = t || ''; m.hidden = !t; m.style.color = ''; }   // 通知（note）の灰色を、エラーに引き継がない
 
+// ---- 一覧の階層表示: フォルダ行（▸／▾）を押すと、そのフォルダの中を開閉する
+// 初めは、直下のフォルダだけ開く（深いものは閉じる）。開いたファイルのあるフォルダは、そのファイルを開いたときに自動で開く
+// （そのあと自分で閉じたものは、閉じたまま）。絞り込み中は、これまでどおり、平らに並べる。
+const tree = { root: null, open: new Map(), revealed: null };
+function buildTree(rels) {
+  const root = { dirs: new Map(), files: [], count: 0 };
+  for (const rel of rels) {
+    const parts = rel.split('/'), name = parts.pop();
+    let node = root, path = ''; node.count++;
+    for (const p of parts) {
+      path = path ? path + '/' + p : p;
+      if (!node.dirs.has(p)) node.dirs.set(p, { name: p, path, dirs: new Map(), files: [], count: 0 });
+      node = node.dirs.get(p); node.count++;
+    }
+    node.files.push({ rel, name });
+  }
+  return root;
+}
+const treeIsOpen = (path, depth) => tree.open.has(path) ? tree.open.get(path) : depth === 0;
+function treeDirPaths(rels) {
+  const s = new Set();
+  for (const rel of rels) { const parts = rel.split('/'); parts.pop(); let p = ''; for (const x of parts) { p = p ? p + '/' + x : x; s.add(p); } }
+  return [...s];
+}
+function treeRevealCurrent() {
+  const cur = current;
+  if (!cur || !folder || !cur.toLowerCase().startsWith(folder.toLowerCase() + '\\')) return;
+  const rel = cur.slice(folder.length + 1).replace(/\\/g, '/');
+  if (rel === tree.revealed) return;
+  tree.revealed = rel;
+  const parts = rel.split('/'); parts.pop();
+  let p = ''; for (const x of parts) { p = p ? p + '/' + x : x; tree.open.set(p, true); }
+}
+function renderTreeNode(list, node, depth) {
+  const dirs = [...node.dirs.values()].sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true }));
+  for (const d of dirs) {
+    const open = treeIsOpen(d.path, depth);
+    const row = document.createElement('div'); row.className = 'dirrow';
+    row.setAttribute('role', 'treeitem'); row.setAttribute('aria-expanded', open ? 'true' : 'false');
+    row.style.paddingLeft = (8 + depth * 14) + 'px'; row.dataset.dir = d.path; row.title = d.path;
+    const ch = document.createElement('span'); ch.className = 'chev'; ch.textContent = open ? '▾' : '▸';
+    const nm = document.createElement('span'); nm.className = 'dname'; nm.textContent = '📁 ' + d.name;
+    const ct = document.createElement('span'); ct.className = 'dcnt'; ct.textContent = d.count;
+    row.append(ch, nm, ct);
+    row.onclick = () => { tree.open.set(d.path, !open); renderList(); };
+    list.appendChild(row);
+    if (open) renderTreeNode(list, d, depth + 1);
+  }
+  for (const f of node.files) list.appendChild(fileItem(f.rel, f.name, false, 10 + depth * 14));
+}
+function fileItem(rel, label, showDir, indent) {
+  const div = document.createElement('div');
+  div.className = 'item' + (current === folder + '\\' + rel.replace(/\//g, '\\') ? ' sel' : '');
+  div.dataset.rel = rel;
+  if (indent) div.style.paddingLeft = indent + 'px';
+  const name = document.createElement('span'); name.className = 'name'; name.textContent = label;
+  div.appendChild(name);
+  const i = rel.lastIndexOf('/');
+  if (showDir && i >= 0) { const dir = document.createElement('span'); dir.className = 'dir'; dir.textContent = rel.slice(0, i); div.appendChild(dir); }
+  div.onclick = () => openFile(folder + '\\' + rel.replace(/\//g, '\\'));
+  return div;
+}
+$('treeOpen').onclick = () => { for (const p of treeDirPaths(files)) tree.open.set(p, true); renderList(); };
+$('treeClose').onclick = () => { for (const p of treeDirPaths(files)) tree.open.set(p, false); renderList(); };
 function renderList() {
   const q = $('filter').value.trim().toLowerCase();
   const shown = files.filter(f => f.toLowerCase().includes(q));
@@ -292,29 +367,15 @@ function renderList() {
   $('count').style.color = listTruncated ? '#cf222e' : '';
   $('count').title = listTruncated ? '大きなフォルダーなので、一覧は途中までです。もっと下のフォルダーを選ぶと、全部を出せます' : '';
   const list = $('list'); list.textContent = '';
-  let lastDir = null;
-  for (const rel of shown) {
-    const i = rel.lastIndexOf('/');
-    const dirName = i < 0 ? '' : rel.slice(0, i);
-    if (!q && dirName !== lastDir && (dirName || lastDir !== null)) {
-      const h = document.createElement('div'); h.className = 'dirhead';
-      h.textContent = '📁 ' + (dirName || '（このフォルダー直下）');
-      list.appendChild(h);
-    }
-    lastDir = dirName;
-    const div = document.createElement('div');
-    div.className = 'item' + (current === folder + '\\' + rel.replace(/\//g, '\\') ? ' sel' : '');
-    div.dataset.rel = rel;
-    const name = document.createElement('span'); name.className = 'name';
-    name.textContent = i < 0 ? rel : rel.slice(i + 1);
-    div.appendChild(name);
-    if (i >= 0 && q) {
-      const dir = document.createElement('span'); dir.className = 'dir';
-      dir.textContent = rel.slice(0, i); div.appendChild(dir);
-    }
-    div.onclick = () => openFile(folder + '\\' + rel.replace(/\//g, '\\'));
-    list.appendChild(div);
+  if (tree.root !== folder) { tree.root = folder; tree.open.clear(); tree.revealed = null; }
+  const hasDirs = shown.some(r => r.includes('/'));
+  $('treeBtns').hidden = !!q || !hasDirs;
+  if (q || !hasDirs) {                       // 絞り込み中（と、サブフォルダが無いとき）: 平らに並べ、フォルダ名は小さく添える
+    for (const rel of shown) { const i = rel.lastIndexOf('/'); list.appendChild(fileItem(rel, i < 0 ? rel : rel.slice(i + 1), !!q, 0)); }
+    return;
   }
+  treeRevealCurrent();
+  renderTreeNode(list, buildTree(shown), 0);
 }
 
 let listTruncated = false;      // 一覧が、時間か件数の上限で途中までのとき true
@@ -481,15 +542,18 @@ async function printBeforeDiagrams() {
 const fileName = () => current ? current.substring(current.lastIndexOf('\\') + 1) : '';
 function openPrint() { MdPrint.open(); }
 
-async function openFile(path) {
+async function openFile(path, keepScroll, restore) {
+  navSaveScroll();                         // 離れる文書の、読んでいた位置を覚える
+  const keep = keepScroll ? { top: $('scroll').scrollTop, left: $('scroll').scrollLeft } : null;   // 自動更新では、読んでいる位置を保つ
   const r = await api.open_file(path);
-  if (r.error) { showMsg(r.error); return; }
+  if (r.error) { showMsg(r.error); return 'error'; }
   showMsg('');
-  current = r.path;
+  current = r.path; curStamp = r.stamp; watchPending = null; watchMissing = false;
+  if (!keepScroll && !nav.busy) navPush(r.path);
   $('content').innerHTML = r.html;
   $('title').textContent = r.path;
-  $('scroll').scrollTop = 0;
-  $('scroll').scrollLeft = 0;
+  $('scroll').scrollTop = keep ? keep.top : 0;
+  $('scroll').scrollLeft = keep ? keep.left : 0;
   renderList();
   const sel = document.querySelector('.item.sel');
   if (sel) sel.scrollIntoView({ block: 'nearest' });
@@ -498,12 +562,67 @@ async function openFile(path) {
   await renderDiagrams(r.path);
   await renderVega(r.path);
   if (fitMode) fitWidth();           // 図が出来て幅が変わるので、もう一度合わせる
+  if (keep) { $('scroll').scrollTop = keep.top; $('scroll').scrollLeft = keep.left; }   // 数式や図で高さが変わるので、描き終えてからも戻す
+  if (restore) { $('scroll').scrollTop = restore.top; $('scroll').scrollLeft = restore.left; }   // 戻る・進むでは、前に読んでいた位置へ
   if (finder.isOpen()) finder.refresh(true);
+  return true;
+}
+
+// ---- 戻る・進む: 開いたファイル（リンクをたどった先・一覧から開いたもの）の履歴。各項目に、読んでいた位置も保つ
+// 自動更新・読み直し・同じファイルを開き直すだけのときは、履歴を増やさない。途中へ戻ってから別のファイルを開くと、「進む」側は捨てる。
+const nav = { list: [], idx: -1, busy: false, detached: false };
+const NAV_MAX = 100;
+const navName = p => p.substring(p.lastIndexOf('\\') + 1);
+function navSaveScroll() {
+  const e = nav.list[nav.idx];
+  if (e && !nav.detached) { const s = { top: $('scroll').scrollTop, left: $('scroll').scrollLeft }; e.top = s.top; e.left = s.left; }
+}
+function navPush(path) {
+  const cur = nav.list[nav.idx];
+  if (!nav.detached && cur && cur.path.toLowerCase() === path.toLowerCase()) return;
+  nav.list = nav.list.slice(0, nav.idx + 1);
+  nav.list.push({ path, top: 0, left: 0 });
+  if (nav.list.length > NAV_MAX) nav.list.shift();
+  nav.idx = nav.list.length - 1; nav.detached = false; navUpdate();
+}
+function navTarget(delta) {
+  if (nav.detached) return delta < 0 && nav.idx >= 0 ? nav.idx : -1;      // 「無題」にいるときは、直前の文書へ戻る
+  const t = nav.idx + delta;
+  return t >= 0 && t < nav.list.length ? t : -1;
+}
+function navUpdate() {
+  const b = navTarget(-1), f = navTarget(1);
+  $('btnBack').disabled = b < 0; $('btnFwd').disabled = f < 0;
+  $('btnBack').title = b >= 0 ? `戻る: ${navName(nav.list[b].path)} (Alt+←)` : '戻る (Alt+←)';
+  $('btnFwd').title = f >= 0 ? `進む: ${navName(nav.list[f].path)} (Alt+→)` : '進む (Alt+→)';
+}
+function navReset() { nav.list = []; nav.idx = -1; nav.detached = false; navUpdate(); }
+async function navGo(delta) {
+  const t = navTarget(delta);
+  if (t < 0 || nav.busy) return;
+  navSaveScroll();
+  const e = nav.list[t];
+  nav.busy = true;
+  try {
+    const r = await navOpen(e.path, e);
+    if (r === true) { nav.idx = t; nav.detached = false; }
+    else if (r === 'error') {                                   // 消された・開けない。履歴から外す
+      nav.list.splice(t, 1);
+      if (t <= nav.idx) nav.idx--;
+    }
+  } finally { nav.busy = false; navUpdate(); }
+}
+$('btnBack').onclick = () => navGo(-1);
+$('btnFwd').onclick = () => navGo(1);
+navUpdate();
+async function navOpen(p, e) {                     // 別のフォルダーの文書なら、そのフォルダーへ移ってから開く
+  if (!folder || !p.toLowerCase().startsWith(folder.toLowerCase() + '\\')) await loadFolder(p.substring(0, p.lastIndexOf('\\')), true);
+  return openFile(p, false, e);
 }
 
 // 開いている文書を閉じて、空白の表示に戻す
 async function closeDocument() {
-  current = null;
+  current = null; navReset();
   $('content').innerHTML = '<div id="empty"></div>';
   $('title').textContent = '';
   $('scroll').scrollTop = 0;
@@ -603,6 +722,8 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); zoomBy(1 / 1.1); return; }
   if (e.ctrlKey && e.key === '0') { e.preventDefault(); setZoom(1, false); return; }
   if (e.ctrlKey && e.key === '9') { e.preventDefault(); fitWidth(); return; }
+  if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 'ArrowLeft') { e.preventDefault(); navGo(-1); return; }
+  if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); navGo(1); return; }
   if (e.key === 'F5') { e.preventDefault(); reload(); }
   else if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'o') { e.preventDefault(); chooseFile(); }
   else if (e.ctrlKey && e.key.toLowerCase() === 'o') { e.preventDefault(); chooseFolder(); }
@@ -898,6 +1019,39 @@ async function syncList() {
   listTruncated = !!r.truncated;
   if (JSON.stringify(r.files) !== JSON.stringify(files)) { files = r.files; renderList(); }
 }
+// ---- 自動更新: 開いているファイルが他のアプリで保存されたら、表示を作り直す
+// 1秒ごとに、更新の目印（日時・大きさ）だけを見る。変わっても、次の確認でも同じ値になってから読む
+// （書き込みの途中を読まないため）。読んでいる位置は保つ。印刷・フォントの設定を開いている間は、動かさない。
+let curStamp = null, watchPending = null, watchBusy = false, watchMissing = false, autoReload = true, noteTimer = null;
+const stampKey = s => s ? s.join(':') : '';
+function note(text) {
+  const m = $('msg'); m.textContent = text; m.hidden = !text; m.style.color = 'var(--muted)';
+  clearTimeout(noteTimer);
+  if (text) noteTimer = setTimeout(() => { if (m.textContent === text) { m.hidden = true; m.textContent = ''; m.style.color = ''; } }, 4000);
+}
+function renderAuto() { $('btnAuto').classList.toggle('active', autoReload); $('btnAuto').title = autoReload
+  ? '自動更新: 入。開いているファイルが他のアプリで保存されたら、表示を自動で更新します（押すと切ります）'
+  : '自動更新: 切。押すと、他のアプリでの保存を見つけて、表示を自動で更新します'; }
+async function watchTick() {
+  if (!autoReload || !api || !current || watchBusy || document.hidden || MdPrint.isOpen() || fontDlgOpen()) return;
+  watchBusy = true;
+  try {
+    const now = await api.file_stamp(current);
+    if (now === null) {                                          // 消された・移動された。表示はそのまま残す
+      if (!watchMissing) { watchMissing = true; note('開いているファイルが見つかりません（削除または移動された可能性があります）。表示は、そのままです'); }
+      return;
+    }
+    watchMissing = false;
+    if (stampKey(now) === stampKey(curStamp)) { watchPending = null; return; }
+    if (stampKey(now) !== stampKey(watchPending)) { watchPending = now; return; }   // 変わった。もう1回、同じ値か確かめてから読む
+    const path = current;
+    await openFile(path, true);
+    if (current === path) note('更新しました ' + new Date().toLocaleTimeString());
+  } finally { watchBusy = false; }
+}
+setInterval(watchTick, 1000);
+$('btnAuto').onclick = () => { autoReload = !autoReload; renderAuto(); api.set_prefs({ auto_reload: autoReload }); if (autoReload) watchTick(); };
+window.addEventListener('focus', () => { watchTick(); });
 window.addEventListener('focus', syncList);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) syncList(); });
 
@@ -905,6 +1059,7 @@ window.addEventListener('pywebviewready', async () => {
   api = window.pywebview.api;
   try { prefs = Object.assign(prefs, await api.get_prefs()); } catch (e) { /* 設定が読めなければ既定のまま */ }
   applyFonts();
+  autoReload = prefs.auto_reload !== false; renderAuto();
   if (prefs.side_hidden) toggleSide();
   if (prefs.zoom) setZoom(prefs.zoom.value, prefs.zoom.fit);
   prefsReady = true;

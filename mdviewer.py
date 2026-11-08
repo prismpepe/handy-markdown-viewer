@@ -32,7 +32,7 @@ import uiprefs
 from sanitize import sanitize
 
 MD_EXTENSIONS = (".md", ".markdown", ".mdown", ".mkd")
-APP_VERSION = "1.10.1"          # 画面上部（ウィンドウのタイトル）などに出すバージョン。ここだけ書き換える
+APP_VERSION = "1.11.0"          # 画面上部（ウィンドウのタイトル）などに出すバージョン。ここだけ書き換える
 APP_TITLE = f"Handy Markdown Viewer v{APP_VERSION}"
 PROG_ID = "MarkdownViewer.File"
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
@@ -266,7 +266,17 @@ class Api:
         files, truncated = scan_markdown(folder)
         return {"error": None, "files": files, "truncated": truncated}
 
+    @staticmethod
+    def file_stamp(path):
+        """ファイルの更新の目印（更新日時・大きさ）。変わったかを見るためだけに使う。無ければ None。"""
+        try:
+            st = os.stat(path)
+        except (OSError, TypeError, ValueError):
+            return None
+        return [st.st_mtime_ns, st.st_size]
+
     def open_file(self, path):
+        stamp = self.file_stamp(path)
         try:
             text = read_text(path)
         except OSError as e:
@@ -285,7 +295,7 @@ class Api:
         except Exception:
             pass
         return {"error": None, "html": html, "path": path,
-                "name": os.path.basename(path)}
+                "name": os.path.basename(path), "stamp": stamp}
 
     def close_document(self):
         """文書を閉じた（フォルダーを変えた）。記憶している前回のファイルも忘れ、タイトルを元に戻す。"""

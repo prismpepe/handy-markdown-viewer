@@ -14,7 +14,8 @@ import time
 sys.path.insert(0, '.')
 os.environ['APPDATA'] = tempfile.mkdtemp(prefix='md_appdata_')
 import webview
-import mdviewer
+import mdviewer
+import gui_nodialog  # noqa: F401  OS のダイアログを出さない（キー入力を奪うため）
 
 DOC = """# 検索の確認
 
