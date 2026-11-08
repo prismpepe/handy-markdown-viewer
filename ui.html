@@ -36,7 +36,7 @@ body { display: flex; flex-direction: column; background: var(--bg); color: var(
 #toolbar { display: flex; flex-wrap: wrap; gap: 6px 0; align-items: center; padding: 8px 12px;
   background: var(--side); border-bottom: 1px solid var(--border); }
 /* 窓を狭めたときは、グループ（区切り線で分けた塊）の境目で折り返す。ボタンの文字は折り返さない */
-#toolbar .group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding-right: 10px; margin-right: 10px;
+#toolbar .group { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 6px; padding-right: 10px; margin-right: 10px;
   border-right: 1px solid var(--border); white-space: nowrap; }
 #toolbar .group:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
 #toolbar button, #toolbar span { white-space: nowrap; }
@@ -72,6 +72,31 @@ button:hover { border-color: var(--accent); }
 .item { padding: 5px 10px; cursor: pointer; border-left: 3px solid transparent; }
 .item:hover { background: var(--sel); }
 .item.sel { background: var(--sel); border-left-color: var(--accent); }
+/* 確認・知らせのダイアログ（書き出しの完了など） */
+#veil { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 10; }
+#veil.show { display: flex; }
+#dlg { background: var(--bg); color: var(--fg); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; width: min(520px, 90vw); box-shadow: 0 8px 30px rgba(0,0,0,.3); }
+#dlg h3 { margin: 0 0 8px; font-size: 16px; }
+#dlg p { margin: 0 0 16px; color: var(--muted); white-space: pre-wrap; word-break: break-all; }
+#dExtra:not(:empty) { margin: 0 0 16px; display: flex; flex-direction: column; gap: 10px; }
+#dlg .btns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+/* 右クリックのメニュー（一覧のファイル） */
+#ctx { position: fixed; z-index: 20; min-width: 200px; padding: 4px; background: var(--bg); color: var(--fg);
+  border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); max-height: calc(100vh - 8px); overflow-y: auto; }
+#ctx[hidden] { display: none; }
+#ctx .citem { display: flex; justify-content: space-between; gap: 24px; width: 100%; border: 0; background: none; color: inherit; text-align: left; padding: 5px 10px; border-radius: 5px; font: inherit; cursor: pointer; }
+#ctx .citem:hover:not(:disabled) { background: var(--sel); }
+#ctx .ckey { color: var(--muted); font-size: 12px; }
+/* フォルダー全体の検索（本文）: 「本文を探す」の切替と、結果の一覧 */
+#bodyRow { display: flex; align-items: center; gap: 10px; padding: 0 10px 4px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+#bodyRow label { white-space: nowrap; cursor: pointer; } #bodyRow span[hidden] { display: none; }
+.shead { padding: 6px 10px 2px; font-weight: 600; font-size: 13px; cursor: pointer; word-break: break-all; border-top: 1px solid var(--border); }
+.shead:first-child { border-top: 0; } .shead:hover { background: var(--sel); }
+.shead .scnt { color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 6px; }
+.shit { padding: 2px 10px 2px 14px; font-size: 12.5px; cursor: pointer; display: grid; grid-template-columns: 3.4em 1fr; gap: 6px; word-break: break-all; line-height: 1.45; }
+.shit:hover { background: var(--sel); } .shit .sln { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.shit mark { background: rgba(255, 211, 61, .55); color: inherit; border-radius: 2px; padding: 0 1px; }
+.smore { padding: 2px 10px 6px 14px; color: var(--muted); font-size: 12px; cursor: pointer; } .smore:hover { color: var(--fg); }
 /* 一覧の階層表示（サブフォルダをアコーディオンで開閉） */
 .dirrow { padding: 4px 10px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--fg); display: flex; align-items: baseline; gap: 4px; user-select: none; }
 .dirrow:hover { background: var(--sel); }
@@ -182,7 +207,7 @@ button:hover { border-color: var(--accent); }
     --t-kw: #0033b3; --t-str: #067d17; --t-com: #5c6370; --t-num: #9c4a00; --t-fn: #6639ba; --t-bi: #0b6e99; --t-var: #a8350f; --t-del: #b3261e; --t-ins: #1a7f37; }
   html, body { height: auto !important; overflow: visible !important; display: block !important;
     background: #fff !important; color: #000 !important; }
-  #toolbar, #msg, #side, #top, #sBar, #pveil, #fveil { display: none !important; }
+  #toolbar, #msg, #ctx, #veil, #side, #top, #sBar, #pveil, #fveil { display: none !important; }
   mark.find-hit { background: none !important; color: inherit !important; outline: 0 !important; }
   #body, #main, #scroll { display: block !important; overflow: visible !important; height: auto !important;
     width: auto !important; flex: none !important; min-height: 0 !important; }
@@ -226,6 +251,7 @@ button:hover { border-color: var(--accent); }
   </span>
   <span class="group">
     <button id="btnPrint" title="Ctrl+P">🖨 印刷／PDF</button>
+    <button id="btnHtml" title="いま表示している文書を、1つで完結する HTML ファイルに書き出す（図・グラフ・数式も入ります）">🌐 HTML</button>
     <button id="btnFont" title="表示フォントの名前・大きさを設定する">🔤 フォント</button>
   </span>
   <span id="zoombox" class="group">
@@ -238,11 +264,20 @@ button:hover { border-color: var(--accent); }
   </span>
 </div>
 <div id="msg" hidden></div>
+<div id="ctx" hidden></div>
+<div id="veil"><div id="dlg"><h3 id="dTitle"></h3><p id="dText"></p><div id="dExtra"></div><div class="btns" id="dBtns"></div></div></div>
 <div id="body">
 <aside id="side">
   <h2>フォルダー</h2>
   <div id="folder">未選択（上の「フォルダーを開く」で選びます）</div>
   <input id="filter" type="search" placeholder="🔍 ファイル名で絞り込み">
+  <div id="bodyRow">
+    <label title="ファイル名ではなく、ファイルの中身（本文）を、フォルダー全体から探します"><input id="bodySearch" type="checkbox"> 本文を探す</label>
+    <span id="bodyOpts" hidden>
+      <label title="大文字と小文字を区別します"><input id="bsCase" type="checkbox"> Aa</label>
+      <label title="正規表現で探します（1行ずつ）"><input id="bsRe" type="checkbox"> .*</label>
+    </span>
+  </div>
   <div id="count"></div>
   <div id="treeBtns" hidden><button id="treeOpen" title="すべてのフォルダを開きます">すべて開く</button><button id="treeClose" title="すべてのフォルダを閉じます">すべて閉じる</button></div>
   <div id="list"></div>
@@ -356,12 +391,20 @@ function fileItem(rel, label, showDir, indent) {
   div.appendChild(name);
   const i = rel.lastIndexOf('/');
   if (showDir && i >= 0) { const dir = document.createElement('span'); dir.className = 'dir'; dir.textContent = rel.slice(0, i); div.appendChild(dir); }
-  div.onclick = () => openFile(folder + '\\' + rel.replace(/\//g, '\\'));
+  const full = folder + '\\' + rel.replace(/\//g, '\\');
+  div.onclick = e => (e.ctrlKey || e.metaKey) ? openInNewWindow(full) : openFile(full);          // Ctrl+クリック: 新しいウィンドウで開く
+  div.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); });          // 中クリックの、自動スクロールを止める
+  div.addEventListener('auxclick', e => { if (e.button === 1) { e.preventDefault(); openInNewWindow(full); } });
+  div.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    showCtx(e.clientX, e.clientY, [{ label: '開く', run: () => openFile(full) }, { label: '新しいウィンドウで開く', key: 'Ctrl+クリック', run: () => openInNewWindow(full) }]);
+  });
   return div;
 }
 $('treeOpen').onclick = () => { for (const p of treeDirPaths(files)) tree.open.set(p, true); renderList(); };
 $('treeClose').onclick = () => { for (const p of treeDirPaths(files)) tree.open.set(p, false); renderList(); };
 function renderList() {
+  if (bodyOn()) { renderBodyResults(); return; }
   const q = $('filter').value.trim().toLowerCase();
   const shown = files.filter(f => f.toLowerCase().includes(q));
   $('count').textContent = folder ? `${shown.length} / ${files.length} 件${listTruncated ? '（途中までです）' : ''}` : '';
@@ -543,7 +586,13 @@ async function printBeforeDiagrams() {
 const fileName = () => current ? current.substring(current.lastIndexOf('\\') + 1) : '';
 function openPrint() { MdPrint.open(); }
 
+// 文書を開いている間（数式・図・グラフの描画を含む）は、openBusy が 0 でない。HTML の書き出しが、終わるまで待つために使う
+let openBusy = 0;
 async function openFile(path, keepScroll, restore) {
+  openBusy++;
+  try { return await openFileInner(path, keepScroll, restore); } finally { openBusy--; }
+}
+async function openFileInner(path, keepScroll, restore) {
   navSaveScroll();                         // 離れる文書の、読んでいた位置を覚える
   const keep = keepScroll ? { top: $('scroll').scrollTop, left: $('scroll').scrollLeft } : null;   // 自動更新では、読んでいる位置を保つ
   const r = await api.open_file(path);
@@ -683,7 +732,7 @@ $('content').addEventListener('click', async e => {
     api.open_external(href);
   } else if (current) {
     const p = await api.resolve_link(current, href);
-    if (p) { await openFile(p); }
+    if (p) { if (e.ctrlKey || e.metaKey) await openInNewWindow(p); else await openFile(p); }          // Ctrl+クリック: 新しいウィンドウで開く
     else {
       // Markdown 以外（PDF・Word など）は、関連づけられたアプリで開く
       const r = await api.open_local(current, href);
@@ -696,8 +745,104 @@ $('btnFolder').onclick = chooseFolder;
 $('btnFile').onclick = chooseFile;
 $('btnReload').onclick = reload;
 $('btnPrint').onclick = openPrint;
+$('btnHtml').onclick = exportHtml;
 $('btnSide').onclick = toggleSide;
-$('filter').oninput = renderList;
+$('filter').oninput = () => { if (bodyOn()) scheduleBodySearch(); else renderList(); };
+// ============================================================ フォルダー全体の検索（本文）
+// 「本文を探す」を入れて、絞り込み欄に探す語を入れると、フォルダーの中のすべての Markdown ファイルの本文を探し、
+// 一致した行を、ファイルごとの一覧に出す。行を押すと、そのファイルを開いて、その場所へ移る。探すのは Python（foldersearch.py）。
+const bsearch = { seq: 0, timer: null, data: null, opts: null, folder: null };
+const bodyOn = () => $('bodySearch').checked;
+const bodyOpts = () => ({ q: $('filter').value.trim(), cs: $('bsCase').checked, re: $('bsRe').checked });
+function scheduleBodySearch(delay) { clearTimeout(bsearch.timer); bsearch.timer = setTimeout(runBodySearch, delay === undefined ? 350 : delay); }
+async function runBodySearch() {
+  const o = bodyOpts(), seq = ++bsearch.seq;
+  bsearch.folder = folder;
+  if (!folder || !o.q) { bsearch.data = null; bsearch.opts = o; renderList(); return; }
+  $('count').textContent = '探しています…'; $('count').style.color = '';
+  let r;
+  try { r = await api.search_folder(folder, o.q, o.cs, o.re, null); } catch (e) { r = { error: String(e), results: [] }; }
+  if (seq !== bsearch.seq) return;                      // もっと新しい検索がある
+  bsearch.data = r; bsearch.opts = o;
+  renderList();
+}
+function markedSnippet(h) {
+  const frag = document.createDocumentFragment();
+  frag.append(h.text.slice(0, h.s));
+  const m = document.createElement('mark'); m.textContent = h.text.slice(h.s, h.e); frag.append(m);
+  frag.append(h.text.slice(h.e));
+  return frag;
+}
+const SHOW_HITS = 8;                                    // 1ファイルで、一覧に出す一致の数（残りは「ほか n 件」）
+function renderBodyResults() {
+  const list = $('list'); list.textContent = '';
+  $('treeBtns').hidden = true;
+  if (bsearch.folder !== folder) { scheduleBodySearch(0); }
+  const d = bsearch.data, o = bodyOpts();
+  const c = $('count'); c.style.color = ''; c.title = '';
+  if (!folder) { c.textContent = ''; return; }
+  if (!o.q) { c.textContent = '探す語を入力してください（本文を探します）'; return; }
+  if (!d) { c.textContent = '探しています…'; return; }
+  if (d.error) { c.textContent = d.error; c.style.color = '#cf222e'; return; }
+  c.textContent = d.total ? `${d.files} ファイル / ${d.total} 行が一致` : '一致する行は、見つかりませんでした';
+  if (d.truncated) { c.textContent += '（途中まで）'; c.title = d.reason; c.style.color = '#cf222e'; }
+  else if (d.skipped) { c.title = `読めなかった・大きすぎるファイルが ${d.skipped} 件あります（探していません）`; }
+  for (const f of d.results) {
+    const head = document.createElement('div'); head.className = 'shead'; head.title = f.rel;
+    head.append(f.rel.includes('/') ? f.rel : f.rel);
+    const cnt = document.createElement('span'); cnt.className = 'scnt'; cnt.textContent = f.count + ' 行'; head.appendChild(cnt);
+    head.onclick = () => openHit(f.rel, null);
+    list.appendChild(head);
+    for (const h of f.hits.slice(0, SHOW_HITS)) {
+      const row = document.createElement('div'); row.className = 'shit';
+      const ln = document.createElement('span'); ln.className = 'sln'; ln.textContent = (h.line + 1);
+      const tx = document.createElement('span'); tx.appendChild(markedSnippet(h));
+      row.append(ln, tx);
+      row.onclick = () => openHit(f.rel, h);
+      list.appendChild(row);
+    }
+    if (f.count > Math.min(SHOW_HITS, f.hits.length)) {
+      const more = document.createElement('div'); more.className = 'smore';
+      more.textContent = `…ほか ${f.count - Math.min(SHOW_HITS, f.hits.length)} 行（ファイルを開いて、探せます）`;
+      more.onclick = () => openHit(f.rel, null);
+      list.appendChild(more);
+    }
+  }
+}
+function initBodySearch() {
+  const sync = () => {
+    $('bodyOpts').hidden = !bodyOn();
+    $('filter').placeholder = bodyOn() ? '🔍 本文を探す語' : '🔍 ファイル名で絞り込み';
+    if (bodyOn()) scheduleBodySearch(0); else { bsearch.seq++; renderList(); }
+  };
+  $('bodySearch').onchange = sync;
+  $('bsCase').onchange = () => scheduleBodySearch(0);
+  $('bsRe').onchange = () => scheduleBodySearch(0);
+  $('filter').addEventListener('keydown', e => { if (e.key === 'Enter' && bodyOn()) { e.preventDefault(); scheduleBodySearch(0); } });
+}
+// 結果の行を開く。ファイルを開いて、本文の中を同じ語で探し、その行の最初の一致へ移る（ハイライトも付く）。line が無ければ、ファイルを開くだけ
+const blockLineOf = el => { const b = el.closest('[data-line]'); return b ? parseInt(b.dataset.line, 10) : -1; };
+async function openHit(rel, hit) {
+  const full = folder + '\\' + rel.replace(/\//g, '\\');
+  if (!current || current.toLowerCase() !== full.toLowerCase()) await openFile(full);
+  if (!hit || !current) return;
+  const o = bsearch.opts || bodyOpts();
+  $('sq').value = o.q; $('sCase').checked = !!o.cs; $('sRegex').checked = !!o.re;
+  finder.open();
+  const n = finder.count();
+  if (!n) { const t = [...document.querySelectorAll('#content [data-line]')].filter(e => parseInt(e.dataset.line, 10) <= hit.line).pop(); if (t) t.scrollIntoView({ block: 'center' }); return; }
+  if (n > 400) return;                                   // 多すぎるときは、最初の一致のまま
+  const lines = [];
+  for (let i = 0; i < n; i++) {                           // 一致を順にたどって、含まれているブロックの行を集める
+    const cur = document.querySelector('#content mark.find-hit.cur');
+    lines.push(cur ? blockLineOf(cur) : -1);
+    if (i < n - 1) finder.step(1);
+  }
+  const upto = lines.filter(l => l <= hit.line);
+  const block = upto.length ? Math.max(...upto) : lines[0];
+  const best = Math.max(0, lines.indexOf(block));         // その行のブロックの、最初の一致
+  while (finder.current() !== best) finder.step(finder.current() > best ? -1 : 1);
+}
 // ---- 検索（文書の中）
 const finder = MdSearch.create({
   root: () => $('content'), hasDocument: () => !!current,
@@ -723,6 +868,8 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); zoomBy(1 / 1.1); return; }
   if (e.ctrlKey && e.key === '0') { e.preventDefault(); setZoom(1, false); return; }
   if (e.ctrlKey && e.key === '9') { e.preventDefault(); fitWidth(); return; }
+  if (e.key === 'Escape' && !$('ctx').hidden) { e.preventDefault(); hideCtx(); return; }
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'n') { e.preventDefault(); openInNewWindow(current || folder); return; }          // 新しいウィンドウ（いまの文書・フォルダーを引き継ぐ）
   if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 'ArrowLeft') { e.preventDefault(); navGo(-1); return; }
   if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); navGo(1); return; }
   if (e.key === 'F5') { e.preventDefault(); reload(); }
@@ -1020,6 +1167,118 @@ async function syncList() {
   listTruncated = !!r.truncated;
   if (JSON.stringify(r.files) !== JSON.stringify(files)) { files = r.files; renderList(); }
 }
+// ---- 確認・知らせのダイアログ。押したボタンの番号を返す（Esc は、最後のボタン。Enter は、primary のボタン）
+function ask(title, text, buttons, extra) {
+  return new Promise(resolve => {
+    $('dTitle').textContent = title; $('dText').textContent = text;
+    $('dExtra').textContent = ''; if (extra) $('dExtra').appendChild(extra);
+    const box = $('dBtns'); box.textContent = '';
+    const done = i => { $('veil').classList.remove('show'); document.removeEventListener('keydown', onKey, true); resolve(i); };
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(buttons.length - 1); }
+      else if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); done(buttons.findIndex(b => b.primary)); }
+    }
+    buttons.forEach((b, i) => {
+      const el = document.createElement('button'); el.textContent = b.label;
+      if (b.primary) el.className = 'primary';
+      el.onclick = () => done(i); box.appendChild(el);
+    });
+    document.addEventListener('keydown', onKey, true);
+    $('veil').classList.add('show');
+    box.querySelector('.primary')?.focus();
+  });
+}
+
+// ============================================================ HTML ファイルへの書き出し
+// いま表示している文書を、1つで完結する HTML ファイル（ネットにつながらなくても、同じ見た目で開ける）に書き出す。
+// 画面に描いた結果をそのまま使う: Mermaid・Vega-Lite は SVG、数式は KaTeX の HTML（スタイルとフォントも入れる）、画像は埋め込み済みのもの。
+// 配色は、明るい配色（受け取る人の環境で、読めるようにするため）。スクリプトは入れない。
+let exportingHtml = false;
+const EXPORT_ROOT = '#content';
+async function settleRender() {                           // 数式・図・グラフを描き終えるまで待つ（描けなかったものは、待たない）
+  while (openBusy > 0) await new Promise(r => setTimeout(r, 100));      // 文書を開いている途中（描画を含む）は、終わるまで待つ
+  // 念のため、画面の状態も見る（描き終わっていない数式・図・グラフのもとの記述が残っていないか）。描けずに、エラーの枠に入ったものは、待たない
+  const pending = () => [...document.querySelectorAll(
+    EXPORT_ROOT + ' .math:not(.typeset), ' + EXPORT_ROOT + ' pre.mermaid-src, ' + EXPORT_ROOT + ' pre > code.language-vega-lite, ' + EXPORT_ROOT + ' pre > code.language-vegalite')].filter(e => !e.closest('.diagram-error')).length;
+  for (let i = 0; i < 100 && pending(); i++) await new Promise(r => setTimeout(r, 200));
+}
+// アプリ自身のスタイルから、本文（EXPORT_ROOT の中）に効いているものを集める。暗い配色・印刷用（@media）は含めない
+function collectExportCss() {
+  const out = [];
+  for (const sheet of document.styleSheets) {
+    let rules; try { rules = sheet.cssRules; } catch (e) { continue; }
+    for (const r of rules) {
+      if (r.type !== CSSRule.STYLE_RULE) continue;
+      const sel = r.selectorText || '';
+      if (sel === ':root' || sel.includes(EXPORT_ROOT)) out.push(r.cssText.split(EXPORT_ROOT).join('.md-body'));
+    }
+  }
+  return out.join('\n');
+}
+const escHtml = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+async function buildExportHtml(title) {
+  const clone = document.querySelector(EXPORT_ROOT).cloneNode(true), warnings = [];
+  clone.querySelectorAll('mark.find-hit').forEach(m => m.replaceWith(document.createTextNode(m.textContent)));      // 検索のハイライトは、入れない
+  clone.querySelectorAll('[data-line]').forEach(e => e.removeAttribute('data-line'));
+  clone.querySelectorAll('[data-src]').forEach(e => e.removeAttribute('data-src'));
+  clone.querySelectorAll('.diagram').forEach(e => { e.style.minHeight = ''; if (!e.getAttribute('style')) e.removeAttribute('style'); });
+  if (clone.querySelector('.diagram-error, .math-error')) warnings.push('描けなかった図・グラフ・数式があります（エラーの表示のまま入ります）');
+  clone.querySelectorAll('a[href]').forEach(a => { if (/^https?:/i.test(a.getAttribute('href'))) { a.target = '_blank'; a.rel = 'noopener noreferrer'; } });
+  const lost = [...clone.querySelectorAll('img')].map(i => i.getAttribute('src') || '').filter(s => s && !/^(data:|https?:)/i.test(s));
+  if (lost.length) warnings.push(`画像を埋め込めませんでした（相対パスのまま）: ${lost.slice(0, 3).join('、')}${lost.length > 3 ? ' ほか' : ''}`);
+  const katexCss = clone.querySelector('.katex') ? (await api.get_katex()).css : '';
+  const css = collectExportCss();
+  const html = '<!doctype html>\n<html lang="ja">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n'
+    + '<meta name="generator" content="Handy Markdown Viewer v__APP_VERSION__">\n<title>' + escHtml(title) + '</title>\n<style>\n'
+    + 'html { background: var(--bg); }\nbody { margin: 0; background: var(--bg); color: var(--fg); font: var(--body-size, 14px)/1.7 var(--body-font, "Yu Gothic UI", "Segoe UI", sans-serif); }\n'
+    + '.md-body { max-width: 960px; margin: 0 auto; padding: 28px 36px 60px; box-sizing: border-box; }\n'
+    + '@media print { body { background: #fff; } .md-body { max-width: none; padding: 0; } }\n'
+    + css + '\n' + katexCss + '\n</style>\n</head>\n<body>\n<article class="md-body">\n' + clone.innerHTML + '\n</article>\n</body>\n</html>\n';
+  return { html, warnings };
+}
+async function exportHtml() {
+  if (exportingHtml) return;
+  if (!current) { showMsg('書き出す文書がありません（先に文書を開いてください）'); return; }
+  exportingHtml = true;
+  try {
+    
+    await settleRender();
+    const restore = await printBeforeDiagrams();          // 暗い配色の図を、明るい配色に描き直す（印刷と同じ）
+    let built;
+    try { built = await buildExportHtml((document.querySelector('#content h1') || {}).textContent || current.substring(current.lastIndexOf('\\') + 1).replace(/\.[^.]*$/, '')); } finally { if (restore) await restore(); }
+    const path = await api.pick_html_path(current.substring(current.lastIndexOf('\\') + 1).replace(/\.[^.]*$/, '') + '.html', current.substring(0, current.lastIndexOf('\\')));
+    if (!path) return;
+    const r = await api.save_html(path, built.html);
+    if (r.error) { showMsg(r.error); return; }
+    const warn = built.warnings.length ? '\n\n※ ' + built.warnings.join('\n※ ') : '';
+    const i = await ask('HTML に書き出しました', `${r.path}\n（${Math.round(r.bytes / 1024).toLocaleString()} KB。1つのファイルで、ネットにつながらなくても開けます）${warn}`,
+      [{ label: 'ブラウザーで開く', primary: true }, { label: '閉じる' }]);
+    if (i === 0) { const o = await api.open_exported_html(r.path); if (o.error) showMsg(o.error); }
+  } finally { exportingHtml = false; }
+}
+// ---- 新しいウィンドウ（別のプロセス）。複数のウィンドウを使うための入口: 一覧・リンクの Ctrl+クリック、中クリック、右クリック、Ctrl+Shift+N
+async function openInNewWindow(path) {
+  const r = await api.open_in_new_window(path || null);
+  if (r && r.error) showMsg(r.error); else note('新しいウィンドウで開きました');
+}
+function hideCtx() { $('ctx').hidden = true; }
+function showCtx(x, y, items) {
+  const m = $('ctx'); m.textContent = '';
+  for (const it of items) {
+    const b = document.createElement('button'); b.className = 'citem';
+    const l = document.createElement('span'); l.textContent = it.label;
+    const k = document.createElement('span'); k.className = 'ckey'; k.textContent = it.key || '';
+    b.append(l, k);
+    b.addEventListener('click', () => { hideCtx(); it.run(); });
+    m.appendChild(b);
+  }
+  m.hidden = false;
+  m.style.left = Math.max(4, Math.min(x, innerWidth - m.offsetWidth - 4)) + 'px';
+  m.style.top = Math.max(4, Math.min(y, innerHeight - m.offsetHeight - 4)) + 'px';
+}
+document.addEventListener('mousedown', e => { if (!e.target.closest('#ctx')) hideCtx(); });
+window.addEventListener('blur', hideCtx);
+
 // ---- 自動更新: 開いているファイルが他のアプリで保存されたら、表示を作り直す
 // 1秒ごとに、更新の目印（日時・大きさ）だけを見る。変わっても、次の確認でも同じ値になってから読む
 // （書き込みの途中を読まないため）。読んでいる位置は保つ。印刷・フォントの設定を開いている間は、動かさない。
@@ -1060,6 +1319,7 @@ window.addEventListener('pywebviewready', async () => {
   api = window.pywebview.api;
   try { prefs = Object.assign(prefs, await api.get_prefs()); } catch (e) { /* 設定が読めなければ既定のまま */ }
   applyFonts();
+  initBodySearch();
   autoReload = prefs.auto_reload !== false; renderAuto();
   if (prefs.side_hidden) toggleSide();
   if (prefs.zoom) setZoom(prefs.zoom.value, prefs.zoom.fit);

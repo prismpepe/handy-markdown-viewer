@@ -23,7 +23,7 @@ VOID = {"br", "hr", "img", "col", "input"}
 DROP_WITH_CONTENT = {"script", "style", "iframe", "object", "embed", "noscript",
                      "template", "textarea", "select", "button", "form", "svg",
                      "math", "title", "head", "link", "meta", "base"}
-COMMON = {"id", "class", "title", "lang", "dir"}
+COMMON = {"id", "class", "title", "lang", "dir", "data-line"}
 ATTRS = {
     "a": {"href"},
     "img": {"src", "alt", "width", "height"},
