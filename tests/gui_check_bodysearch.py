@@ -64,7 +64,7 @@ def drive():
     time.sleep(8)
     wait("typeof bodyOn === 'function'")
     js("loadFolder(%s, true)" % json.dumps(tmp))
-    wait("document.querySelectorAll('#list .item').length === 3")
+    wait("document.querySelectorAll('#list .item').length === 2")
     check("初めは「本文を探す」は切れている（ファイル名の絞り込み）", js("[document.getElementById('bodySearch').checked, document.getElementById('bodyOpts').hidden, document.getElementById('filter').placeholder]"), [False, True, '🔍 ファイル名で絞り込み'])
 
     js("document.getElementById('bodySearch').click()")
@@ -73,9 +73,15 @@ def drive():
 
     set_query('漏水')
     check("本文を探す: ファイルごとの結果が出る", wait("document.querySelectorAll('#list .shead').length === 2"), True)
-    check("ファイル名と、一致した行の数", heads(), ['a.md:2 行', 'sub/b.md:1 行'])
+    check("ファイル名と、一致した行の数", heads(), ['b.md:1 行', 'a.md:2 行'])
+    check("本文検索の結果も、フォルダーごとにまとめる（サブフォルダーが先）", js("[...document.querySelectorAll('#list > div')].map(r => r.classList.contains('dirrow') ? 'D:' + r.querySelector('.dname').textContent.replace('📁 ', '') + '(' + r.querySelector('.dcnt').textContent + ')' : r.classList.contains('shead') ? 'F:' + r.firstChild.textContent : null).filter(x => x)"), ['D:sub(1)', 'F:b.md', 'F:a.md'])
+    check("本文検索でも、「すべて開く・閉じる」が使える", js("document.getElementById('treeBtns').hidden"), False)
+    js("document.getElementById('treeClose').click()")
+    check("「すべて閉じる」で、フォルダーが畳まれる（探した結果は、そのまま）", js("[document.querySelectorAll('#list .dirrow[aria-expanded=false]').length, document.querySelectorAll('#list .shead').length, document.getElementById('count').textContent.includes('2 ファイル')]"), [1, 1, True])
+    js("document.getElementById('treeOpen').click()")
+    check("「すべて開く」で、また開く", js("document.querySelectorAll('#list .shead').length"), 2)
     check("全体の件数", count_text(), '2 ファイル / 3 行が一致')
-    check("一致した行が、行番号と、一致をハイライトして出る", js("[...document.querySelectorAll('#list .shit')].map(r => r.querySelector('.sln').textContent + '|' + r.querySelector('mark').textContent)"), ['3|漏水', '7|漏水', '2|漏水'])
+    check("一致した行が、行番号と、一致をハイライトして出る", js("[...document.querySelectorAll('#list .shit')].map(r => r.querySelector('.sln').textContent + '|' + r.querySelector('mark').textContent)"), ['2|漏水', '3|漏水', '7|漏水'])
     check("一致しなかったファイル（c.md）は、出ない", js("[...document.querySelectorAll('#list .shead')].some(h => h.textContent.startsWith('c.md'))"), False)
 
     # --- 大文字小文字
@@ -99,18 +105,18 @@ def drive():
     # --- 行へ移る（ビューア: 本文の中を同じ語で探し、その行の最初の一致へ）
     set_query('漏水')
     wait("document.querySelectorAll('#list .shit').length === 3")
-    js("document.querySelectorAll('#list .shit')[1].click()")
+    js("document.querySelectorAll('#list .shit')[2].click()")
     check("2つ目の一致（7行目）を押すと、a.md を開く", wait("(document.querySelector('#content h1') || {}).textContent === '議事録'"), True)
     check("本文の中の検索バーが開き、同じ語で探している", wait("!document.getElementById('sBar').hidden && document.getElementById('sq').value === '漏水'"), True)
     check("その行の段落（7行目＝data-line 6）の一致が、現在の一致になる",
           wait("(() => { const c = document.querySelector('#content mark.find-hit.cur'); const b = c && c.closest('[data-line]'); return !!b && b.dataset.line === '6'; })()"), True)
-    js("document.querySelectorAll('#list .shit')[0].click()")
+    js("document.querySelectorAll('#list .shit')[1].click()")
     check("1つ目の一致（3行目）を押すと、その段落（data-line 2）に移る",
           wait("(() => { const c = document.querySelector('#content mark.find-hit.cur'); const b = c && c.closest('[data-line]'); return !!b && b.dataset.line === '2'; })()"), True)
     check("同じファイルは、開き直さない（読んでいる文書は a.md のまま）", js("current.endsWith('a.md')"), True)
 
     # --- ファイル名の行を押すと、開くだけ
-    js("document.querySelectorAll('#list .shead')[1].click()")
+    js("document.querySelectorAll('#list .shead')[0].click()")
     check("ファイル名を押すと、そのファイルを開く", wait("(document.querySelector('#content h1') || {}).textContent === '設計'"), True)
 
     # --- 切ると、ファイル一覧に戻る
@@ -119,14 +125,14 @@ def drive():
     check("「本文を探す」を切ると、検索バーが閉じ、ハイライトも消える",
           wait("document.getElementById('sBar').hidden && document.querySelectorAll('#content mark.find-hit').length === 0"), True)
     set_query('')
-    check("「本文を探す」を切ると、ファイルの一覧に戻る", wait("document.querySelectorAll('#list .item').length === 3 && document.getElementById('bodyOpts').hidden"), True)
+    check("「本文を探す」を切ると、ファイルの一覧に戻る（開いた文書のフォルダは開いている）", wait("document.querySelectorAll('#list .item').length === 3 && document.getElementById('bodyOpts').hidden"), True)
     check("件数の表示も、ファイルの件数に戻る", count_text(), '3 / 3 件')
 
     # --- 古い検索の結果が、新しい検索を上書きしない
     js("document.getElementById('bodySearch').click()")
     set_query('漏水'); set_query('設計')
     time.sleep(1.6)
-    check("続けて語を変えても、最後の語の結果だけが出る", heads(), ['sub/b.md:1 行'])
+    check("続けて語を変えても、最後の語の結果だけが出る", heads(), ['b.md:1 行'])
 
     # --- フォルダーを変えると、絞り込み欄は空になる（従来どおり）が、「本文を探す」は入ったまま。新しいフォルダーを探す
     other = tempfile.mkdtemp()
