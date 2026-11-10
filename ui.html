@@ -41,10 +41,11 @@ body { display: flex; flex-direction: column; background: var(--bg); color: var(
 #toolbar .group:last-child { border-right: 0; margin-right: 0; padding-right: 0; }
 #toolbar button, #toolbar span { white-space: nowrap; }
 #zoombox { display: inline-flex; align-items: center; gap: 4px; }
-#zoombox button { padding: 6px 10px; min-width: 34px; }
-#zoombox input { width: 64px; padding: 5px 4px; font: inherit; text-align: right;
+#zoombox button { padding: 0 8px; min-width: 28px; height: 26px; }
+#topbtns { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; white-space: nowrap; }
+#topbtns > button { padding: 0 9px; height: 26px; }
+#zoombox input { width: 54px; height: 26px; box-sizing: border-box; padding: 0 4px; font: inherit; text-align: right;
   color: var(--fg); background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
-#zoombox button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 #toolbar button { padding: 6px 14px; }
 #toolbar button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 #sBar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 6px 12px;
@@ -113,7 +114,7 @@ button:hover { border-color: var(--accent); }
   display: flex; gap: 8px; align-items: center; }
 #navbtns { display: flex; gap: 4px; flex: none; }
 #navbtns button { padding: 0 9px; font-size: 12px; line-height: 1.7; }
-#title { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#title { flex: 0 1 auto; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #scroll { flex: 1; overflow: auto; }
 #content { padding: 24px 32px 64px; transform-origin: top left;
   font-family: var(--body-font), sans-serif; font-size: var(--body-size); }
@@ -250,17 +251,7 @@ button:hover { border-color: var(--accent); }
     <button id="btnFind" title="Ctrl+F">🔍 検索</button>
   </span>
   <span class="group">
-    <button id="btnPrint" title="Ctrl+P">🖨 印刷／PDF</button>
-    <button id="btnHtml" title="いま表示している文書を、1つで完結する HTML ファイルに書き出す（図・グラフ・数式も入ります）">🌐 HTML</button>
     <button id="btnFont" title="表示フォントの名前・大きさを設定する">🔤 フォント</button>
-  </span>
-  <span id="zoombox" class="group">
-    <span>表示倍率</span>
-    <button id="zOut" title="縮小 (Ctrl+−)">−</button>
-    <input id="zVal" type="number" min="10" max="500" step="5" value="100" title="倍率(%)を直接入力">%
-    <button id="zIn" title="拡大 (Ctrl++)">＋</button>
-    <button id="z100" title="等倍 (Ctrl+0)">100%</button>
-    <button id="zFit" title="横幅いっぱいに収める (Ctrl+9)">↔ 全体表示</button>
   </span>
 </div>
 <div id="msg" hidden></div>
@@ -282,7 +273,7 @@ button:hover { border-color: var(--accent); }
   <div id="list"></div>
 </aside>
 <div id="main">
-  <div id="top"><span id="navbtns"><button id="btnBack" title="戻る (Alt+←)" disabled>◀</button><button id="btnFwd" title="進む (Alt+→)" disabled>▶</button></span><span id="title"></span></div>
+  <div id="top"><span id="navbtns"><button id="btnBack" title="戻る (Alt+←)" disabled>◀</button><button id="btnFwd" title="進む (Alt+→)" disabled>▶</button></span><span id="title"></span><span id="topbtns"><span id="zoombox"><button id="zOut" title="縮小 (Ctrl+−)">−</button><input id="zVal" type="number" min="10" max="500" step="5" value="100" title="倍率(%)を直接入力">%<button id="zIn" title="拡大 (Ctrl++)">＋</button><button id="z100" title="等倍 (Ctrl+0)">100%</button></span><button id="btnPrint" title="Ctrl+P">🖨 印刷／PDF</button><button id="btnHtml" title="いま表示している文書を、1つで完結する HTML ファイルに書き出す（図・グラフ・数式も入ります）">🌐 HTML</button></span></div>
   <div id="sBar" hidden>
     <input id="sq" type="text" placeholder="検索する文字列" spellcheck="false">
     <button id="sPrev" title="前の一致 (Shift+Enter / Shift+F3)">▲ 前へ</button>
@@ -610,11 +601,9 @@ async function openFileInner(path, keepScroll, restore) {
   renderList();
   const sel = document.querySelector('.item.sel');
   if (sel) sel.scrollIntoView({ block: 'nearest' });
-  if (fitMode) fitWidth();
   await renderMath(r.path);
   await renderDiagrams(r.path);
   await renderVega(r.path);
-  if (fitMode) fitWidth();           // 図が出来て幅が変わるので、もう一度合わせる
   if (keep) { $('scroll').scrollTop = keep.top; $('scroll').scrollLeft = keep.left; }   // 数式や図で高さが変わるので、描き終えてからも戻す
   if (restore) { $('scroll').scrollTop = restore.top; $('scroll').scrollLeft = restore.left; }   // 戻る・進むでは、前に読んでいた位置へ
   if (finder.isOpen()) finder.refresh(true);
@@ -877,8 +866,7 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'p') { e.preventDefault(); openPrint(); return; }
   if (e.ctrlKey && !e.shiftKey && (e.key === '+' || e.key === '=' || e.key === ';')) { e.preventDefault(); zoomBy(1.1); return; }
   if (e.ctrlKey && (e.key === '-' || e.key === '_')) { e.preventDefault(); zoomBy(1 / 1.1); return; }
-  if (e.ctrlKey && e.key === '0') { e.preventDefault(); setZoom(1, false); return; }
-  if (e.ctrlKey && e.key === '9') { e.preventDefault(); fitWidth(); return; }
+  if (e.ctrlKey && e.key === '0') { e.preventDefault(); setZoom(1); return; }
   if (e.key === 'Escape' && !$('ctx').hidden) { e.preventDefault(); hideCtx(); return; }
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'n') { e.preventDefault(); openInNewWindow(current || folder); return; }          // 新しいウィンドウ（いまの文書・フォルダーを引き継ぐ）
   if (e.altKey && !e.ctrlKey && !e.shiftKey && e.key === 'ArrowLeft') { e.preventDefault(); navGo(-1); return; }
@@ -960,14 +948,13 @@ function applyFonts() {
   const k = (fontPref('ui').size || FONT_PARTS.ui.size) / FONT_PARTS.ui.size;   // 画面の部品は、全体を拡大縮小して大きさを合わせる
   for (const id of ['toolbar', 'side', 'top']) $(id).style.zoom = k === 1 ? '' : k;
   if (window.mermaid) window.mermaid.initialize(mermaidConfig());
-  if (fitMode) fitWidth();
 }
 
 function savePrefsSoon() {              // 表示倍率・一覧の表示は、変えたあと少し待ってまとめて保存する
   if (!prefsReady || !api) return;
   clearTimeout(prefsTimer);
   prefsTimer = setTimeout(() => {
-    prefs.zoom = { value: zoom, fit: fitMode };
+    prefs.zoom = { value: zoom, fit: false };
     prefs.side_hidden = $('side').classList.contains('hidden');
     api.set_prefs({ zoom: prefs.zoom, side_hidden: prefs.side_hidden });
   }, 400);
@@ -1122,52 +1109,29 @@ $('fReset').onclick = async () => {
 };
 
 // --- 表示倍率 -------------------------------------------------------------
-let zoom = 1, fitMode = false;
+let zoom = 1;
 const Z_MIN = 0.1, Z_MAX = 5;
 
-function setZoom(z, fit) {
+function setZoom(z) {
   zoom = Math.min(Z_MAX, Math.max(Z_MIN, z));
-  fitMode = !!fit;
   $('content').style.zoom = zoom;
   $('zVal').value = Math.round(zoom * 100);
-  $('zFit').classList.toggle('active', fitMode);
   savePrefsSoon();
 }
 
-const overflowing = () => $('scroll').scrollWidth > $('scroll').clientWidth + 1;
-
-function fitWidth() {                      // 横スクロールが要らない最大の倍率を探す
-  setZoom(1, true);
-  if (!overflowing()) return;
-  let lo = Z_MIN, hi = 1;
-  for (let i = 0; i < 9; i++) {
-    const mid = (lo + hi) / 2;
-    $('content').style.zoom = mid;
-    if (overflowing()) hi = mid; else lo = mid;
-  }
-  setZoom(lo, true);
-}
-
-const zoomBy = f => setZoom(Math.round(zoom * f * 100) / 100, false);
+const zoomBy = f => setZoom(Math.round(zoom * f * 100) / 100);
 $('zOut').onclick = () => zoomBy(1 / 1.1);
 $('zIn').onclick = () => zoomBy(1.1);
-$('z100').onclick = () => setZoom(1, false);
-$('zFit').onclick = fitWidth;
+$('z100').onclick = () => setZoom(1);
 $('zVal').onchange = () => {
   const v = parseFloat($('zVal').value);
-  setZoom(isFinite(v) ? v / 100 : zoom, false);
+  setZoom(isFinite(v) ? v / 100 : zoom);
 };
 $('scroll').addEventListener('wheel', e => {
   if (!e.ctrlKey) return;
   e.preventDefault();
   zoomBy(e.deltaY < 0 ? 1.1 : 1 / 1.1);
 }, { passive: false });
-let resizeTimer = null;
-window.addEventListener('resize', () => {  // 全体表示のまま窓を広げ縮めしたら追従する
-  if (!fitMode) return;
-  clearTimeout(resizeTimer); resizeTimer = setTimeout(fitWidth, 120);
-});
-
 let lastSync = 0;
 async function syncList() {
   if (!api || !folder || listTruncated || Date.now() - lastSync < 1000) return;   // 途中までの一覧は、前面に戻るたびに読み直さない（毎回、上限の時間がかかるため）
@@ -1333,7 +1297,7 @@ window.addEventListener('pywebviewready', async () => {
   initBodySearch();
   autoReload = prefs.auto_reload !== false; renderAuto();
   if (prefs.side_hidden) toggleSide();
-  if (prefs.zoom) setZoom(prefs.zoom.value, prefs.zoom.fit);
+  if (prefs.zoom) setZoom(prefs.zoom.value);
   prefsReady = true;
   await MdPrint.init({
     api, content: () => $('content'), name: fileName, path: () => current, hasDocument: () => !!current,

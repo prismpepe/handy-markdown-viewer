@@ -111,6 +111,17 @@ def drive():
     time.sleep(1)
     check("窓を広げ直すと、また1行に戻る", json.loads(toolbar())['rows'], 1)
 
+    # 本文に関するもの（倍率・印刷／PDF・HTML）は、本文の上端の1行（右端）に置く。トップバーは1段
+    check("本文の上端の1行に、倍率・印刷／PDF・HTML がある", js("[...document.querySelectorAll('#topbtns button, #topbtns input')].map(e => e.id)"), ['zOut', 'zVal', 'zIn', 'z100', 'btnPrint', 'btnHtml'])
+    check("トップバーには、倍率・印刷／PDF・HTML がない", js("['zoombox', 'btnPrint', 'btnHtml'].map(i => !!document.querySelector('#toolbar #' + i))"), [False, False, False])
+    check("全体表示のボタンは、なくなった", js("document.getElementById('zFit')"), None)
+    check("上端の1行の右端に、ボタンが並ぶ（パスの右）", js("(() => { const t = document.getElementById('topbtns').getBoundingClientRect(), p = document.getElementById('top').getBoundingClientRect(); return Math.round(p.right - t.right) <= 14; })()"), True)
+    js("document.getElementById('zIn').click()")
+    check("＋で倍率が上がる", js("+document.getElementById('zVal').value > 100"), True)
+    js("document.getElementById('z100').click()")
+    check("100% で等倍に戻る", js("+document.getElementById('zVal').value"), 100)
+    check("Ctrl+9 は、何も起こさない（全体表示は、なくなった）", (js("document.dispatchEvent(new KeyboardEvent('keydown', {key: '9', ctrlKey: true, bubbles: true})); +document.getElementById('zVal').value")), 100)
+
     # hidden 属性の要素は、実際に隠れている（display を指定した CSS が、hidden を打ち消していないか）
     shown = js("[...document.querySelectorAll('[hidden]')].filter(e => getComputedStyle(e).display !== 'none').map(e => e.id || e.className || e.tagName)")
     check("hidden 属性の要素が、すべて隠れている", shown, [])
