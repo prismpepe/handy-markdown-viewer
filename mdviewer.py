@@ -35,7 +35,7 @@ import uiprefs
 from sanitize import sanitize
 
 MD_EXTENSIONS = (".md", ".markdown", ".mdown", ".mkd")
-APP_VERSION = "1.15.0"          # 画面上部（ウィンドウのタイトル）などに出すバージョン。ここだけ書き換える
+APP_VERSION = "1.15.1"          # 画面上部（ウィンドウのタイトル）などに出すバージョン。ここだけ書き換える
 APP_TITLE = f"Handy Markdown Viewer v{APP_VERSION}"
 PROG_ID = "MarkdownViewer.File"
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".venv", "venv"}
@@ -327,8 +327,11 @@ class Api:
             if settings.get("last_file") != path:
                 settings["last_file"] = path
                 save_settings(settings)
-        html = sanitize(self.md.render(text, {"base": base}),
-                        lambda src: inline_image(src, base))
+        try:
+            html = sanitize(self.md.render(text, {"base": base}),
+                            lambda src: inline_image(src, base))
+        except Exception as e:             # 変換器の不具合で例外が出ても、文書が開けなくならないように、エラーを表示する
+            html = mdext.error_html(e)
         try:
             self._window.set_title(f"{os.path.basename(path)} - {APP_TITLE}")
         except Exception:
