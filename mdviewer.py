@@ -224,7 +224,7 @@ class Api:
         self._window = None
         self.md = make_renderer()
         self.start_path = start_path
-        self._deck = deck.DeckHost(resource_path, lambda: os.path.dirname(settings_path()))
+        self._deck = deck.DeckHost(resource_path, lambda: os.path.dirname(settings_path()), lambda patch: self.set_prefs(patch))
         self._mermaid = None
         self._vendor = {}
         self._doc_dir = None      # いま開いている文書のフォルダー（Vega-Lite のデータ読み込みの基準）
@@ -512,6 +512,9 @@ class Api:
         clean = uiprefs.clean_prefs(patch)
         if clean:
             settings = load_settings()
+            if "deck" in clean:              # 発表の設定は、項目ごとに足す（別の項目を消さない）
+                old = settings.get("deck") if isinstance(settings.get("deck"), dict) else {}
+                clean = {**clean, "deck": {**uiprefs.clean_deck(old), **clean["deck"]}}
             settings.update(clean)
             save_settings(settings)
         return clean
