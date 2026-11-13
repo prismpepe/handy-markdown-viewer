@@ -162,6 +162,10 @@ button:hover { border-color: var(--accent); }
 #content .md-note-warn { background: rgba(212, 167, 44, .16); border-left-color: #d4a72c; }
 #content .md-note-alert { background: rgba(207, 34, 46, .10); border-left-color: #cf222e; }
 #content blockquote.md-alert { color: inherit; border-left-width: 4px; }
+/* 発表（スライド）用の書き方。ふつうの表示では、発表者ノートとスライドの指定は隠し、段組みは横に並べる */
+#content .slide-note, #content .slide-directive { display: none; }
+#content .deck-columns { display: flex; gap: 1.5em; align-items: flex-start; }
+#content .deck-col { flex: 1 1 0; min-width: 0; }
 #content .render-error { margin: 1em 0; padding: .1em 1em; border-left: 4px solid #cf222e; background: rgba(207, 34, 46, .10); border-radius: 4px; }
 #content .md-alert-title { margin: .6em 0 .1em; font-weight: 600; }
 #content .md-alert-title + p { margin-top: .2em; }
@@ -295,7 +299,7 @@ button:hover { border-color: var(--accent); }
   <div id="list"></div>
 </aside>
 <div id="main">
-  <div id="top"><span id="navbtns"><button id="btnBack" title="戻る (Alt+←)" disabled>◀</button><button id="btnFwd" title="進む (Alt+→)" disabled>▶</button></span><span id="title"></span><span id="topbtns"><span id="zoombox"><button id="zOut" title="縮小 (Ctrl+−)">−</button><input id="zVal" type="number" min="10" max="500" step="5" value="100" title="倍率(%)を直接入力">%<button id="zIn" title="拡大 (Ctrl++)">＋</button><button id="z100" title="等倍 (Ctrl+0)">100%</button></span><button id="btnPrint" title="Ctrl+P">🖨 印刷／PDF</button><button id="btnHtml" title="いま表示している文書を、1つで完結する HTML ファイルに書き出す（図・グラフ・数式も入ります）">🌐 HTML</button></span></div>
+  <div id="top"><span id="navbtns"><button id="btnBack" title="戻る (Alt+←)" disabled>◀</button><button id="btnFwd" title="進む (Alt+→)" disabled>▶</button></span><span id="title"></span><span id="topbtns"><button id="bDeck" title="発表（スライドショー）を始める。水平線（---）でスライドを区切ります">▶ 発表</button><span id="zoombox"><button id="zOut" title="縮小 (Ctrl+−)">−</button><input id="zVal" type="number" min="10" max="500" step="5" value="100" title="倍率(%)を直接入力">%<button id="zIn" title="拡大 (Ctrl++)">＋</button><button id="z100" title="等倍 (Ctrl+0)">100%</button></span><button id="btnPrint" title="Ctrl+P">🖨 印刷／PDF</button><button id="btnHtml" title="いま表示している文書を、1つで完結する HTML ファイルに書き出す（図・グラフ・数式も入ります）">🌐 HTML</button></span></div>
   <div id="sBar" hidden>
     <input id="sq" type="text" placeholder="検索する文字列" spellcheck="false">
     <button id="sPrev" title="前の一致 (Shift+Enter / Shift+F3)">▲ 前へ</button>
@@ -758,6 +762,16 @@ $('content').addEventListener('click', async e => {
 $('btnFolder').onclick = chooseFolder;
 $('btnFile').onclick = chooseFile;
 $('btnReload').onclick = reload;
+/*DECK_UI_JS*/
+const DECK_HOST = {
+  appName: 'Viewer',
+  docPath: () => current || folder || null,
+  startLine: () => null,
+  hasDocument: () => !!current,
+  say: t => showMsg(t),
+  refresh: async () => {},
+};
+$('bDeck').onclick = startPresentation;
 $('btnPrint').onclick = openPrint;
 $('btnHtml').onclick = exportHtml;
 $('btnSide').onclick = toggleSide;

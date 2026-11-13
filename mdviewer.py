@@ -23,6 +23,7 @@ import webbrowser
 import autolink
 import cjk_emphasis
 import dialogs
+import deck
 import filedrop
 import highlight
 import mdext
@@ -223,6 +224,7 @@ class Api:
         self._window = None
         self.md = make_renderer()
         self.start_path = start_path
+        self._deck = deck.DeckHost(resource_path, lambda: os.path.dirname(settings_path()))
         self._mermaid = None
         self._vendor = {}
         self._doc_dir = None      # いま開いている文書のフォルダー（Vega-Lite のデータ読み込みの基準）
@@ -484,6 +486,25 @@ class Api:
         return self._vendor["katex"]
 
     # --- 画面の設定（フォント・表示倍率・一覧の表示）-------------------------
+    # --- 発表（スライドショー。deck.py）-------------------------------------
+    def deck_prepare(self, doc_path=None):
+        return self._deck.prepare(doc_path if isinstance(doc_path, str) else None)
+
+    def deck_theme_css(self, theme_id, doc_path=None):
+        return self._deck.theme_css(theme_id, doc_path if isinstance(doc_path, str) else None)
+
+    def deck_make_theme(self, doc_path=None):
+        return self._deck.make_sample_theme(doc_path if isinstance(doc_path, str) else None)
+
+    def deck_open(self, html, opts):
+        return self._deck.open(html, opts)
+
+    def deck_export_pdf(self, html, mode, path):
+        return self._deck.export_pdf(html, mode, path)
+
+    def deck_close(self):
+        self._deck.close()
+
     def get_prefs(self):
         return uiprefs.clean_prefs(load_settings())
 
@@ -704,6 +725,7 @@ def build_html():
 
     return (read("ui.html")
             .replace("/*PRINT_JS*/", read("print.js"))
+            .replace("/*DECK_UI_JS*/", read("deck_ui.js"))
             .replace("/*FIND_JS*/", read("vfind.js"))
             .replace("__APP_VERSION__", APP_VERSION))
 
