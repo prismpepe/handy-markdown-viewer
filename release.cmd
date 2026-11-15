@@ -1,6 +1,6 @@
 @echo off
 rem Build the exe and make the distribution zip.
-rem   release.cmd           build the exe (build.cmd), then make dist\MarkdownViewer_YYYYMMDD.zip
+rem   release.cmd           build the exe (build.cmd), then make dist\MarkdownViewer_v<version>.zip
 rem   release.cmd nobuild   make the zip from the existing dist\MarkdownViewer.exe
 setlocal
 cd /d "%~dp0"
